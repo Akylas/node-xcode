@@ -155,6 +155,112 @@ exports['updateProductName function'] = {
     }
 }
 
+exports['updateBuildProperty function'] = {
+    setUp:function(callback) {
+        callback();
+    },
+    tearDown:function(callback) {
+        fs.writeFileSync(bcpbx, original_pbx, 'utf-8');
+        callback();
+    },
+    'should change build properties in the .pbxproj file': function (test) {
+        var myProj = new pbx('test/parser/projects/build-config.pbxproj');
+        myProj.parse(function(err, hash) {
+            myProj.updateBuildProperty('TARGETED_DEVICE_FAMILY', '"arm"');
+            var newContents = myProj.writeSync();
+            test.ok(newContents.match(/TARGETED_DEVICE_FAMILY\s*=\s*"arm"/));
+            myProj.updateBuildProperty('OTHER_LDFLAGS', ['T','E','S','T']);
+            newContents = myProj.writeSync();
+            test.ok(newContents.match(/OTHER_LDFLAGS\s*=\s*\(\s*T,\s*E,\s*S,\s*T,\s*\)/))
+            test.done();
+        });
+    }
+}
+
+exports['addBuildProperty function'] = {
+    setUp:function(callback) {
+        callback();
+    },
+    tearDown:function(callback) {
+        fs.writeFileSync(bcpbx, original_pbx, 'utf-8');
+        callback();
+    },
+    'should add 4 build properties in the .pbxproj file': function (test) {
+        var myProj = new pbx('test/parser/projects/build-config.pbxproj');
+        myProj.parse(function(err, hash) {
+            myProj.addBuildProperty('ENABLE_BITCODE', 'NO');
+            var newContents = myProj.writeSync();
+            test.equal(newContents.match(/ENABLE_BITCODE\s*=\s*NO/g).length, 4);
+            test.done();
+        });
+    },
+    'should add 2 build properties in the .pbxproj file for specific build': function (test) {
+        var myProj = new pbx('test/parser/projects/build-config.pbxproj');
+        myProj.parse(function(err, hash) {
+            myProj.addBuildProperty('ENABLE_BITCODE', 'NO', 'Release');
+            var newContents = myProj.writeSync();
+            test.equal(newContents.match(/ENABLE_BITCODE\s*=\s*NO/g).length, 2);
+            test.done();
+        });
+    },
+    'should not add build properties in the .pbxproj file for nonexist build': function (test) {
+        var myProj = new pbx('test/parser/projects/build-config.pbxproj');
+        myProj.parse(function(err, hash) {
+            myProj.addBuildProperty('ENABLE_BITCODE', 'NO', 'nonexist');
+            var newContents = myProj.writeSync();
+            test.ok(!newContents.match(/ENABLE_BITCODE\s*=\s*NO/g));
+            test.done();
+        });
+    }
+}
+
+exports['removeBuildProperty function'] = {
+    setUp:function(callback) {
+        callback();
+    },
+    tearDown:function(callback) {
+        fs.writeFileSync(bcpbx, original_pbx, 'utf-8');
+        callback();
+    },
+    'should remove all build properties in the .pbxproj file': function (test) {
+        var myProj = new pbx('test/parser/projects/build-config.pbxproj');
+        myProj.parse(function(err, hash) {
+            myProj.removeBuildProperty('IPHONEOS_DEPLOYMENT_TARGET');
+            var newContents = myProj.writeSync();
+            test.ok(!newContents.match(/IPHONEOS_DEPLOYMENT_TARGET/));
+            test.done();
+        });
+    },
+    'should remove specific build properties in the .pbxproj file': function (test) {
+        var myProj = new pbx('test/parser/projects/build-config.pbxproj');
+        myProj.parse(function(err, hash) {
+            myProj.removeBuildProperty('IPHONEOS_DEPLOYMENT_TARGET', 'Debug');
+            var newContents = myProj.writeSync();
+            test.equal(newContents.match(/IPHONEOS_DEPLOYMENT_TARGET/g).length, 2);
+            test.done();
+        });
+    },
+    'should not remove any build properties in the .pbxproj file': function (test) {
+        var myProj = new pbx('test/parser/projects/build-config.pbxproj');
+        myProj.parse(function(err, hash) {
+            myProj.removeBuildProperty('IPHONEOS_DEPLOYMENT_TARGET', 'notexist');
+            var newContents = myProj.writeSync();
+            test.equal(newContents.match(/IPHONEOS_DEPLOYMENT_TARGET/g).length, 4);
+            test.done();
+        });
+    },
+    'should fine with remove inexist build properties in the .pbxproj file': function (test) {
+        var myProj = new pbx('test/parser/projects/build-config.pbxproj');
+        myProj.parse(function(err, hash) {
+            myProj.removeBuildProperty('ENABLE_BITCODE');
+            var newContents = myProj.writeSync();
+            test.ok(!newContents.match(/ENABLE_BITCODE/));
+            test.done();
+        });
+    }
+
+}
+
 exports['productName field'] = {
     'should return the product name': function (test) {
         var newProj = new pbx('.');
@@ -162,6 +268,28 @@ exports['productName field'] = {
 
         test.equal(newProj.productName, 'KitchenSinktablet');
         test.done();
+    }
+}
+
+exports['addPluginFile function'] = {
+    'should strip the Plugin path prefix': function (test) {
+        var myProj = new pbx('test/parser/projects/full.pbxproj');
+
+        myProj.parse(function (err, hash) {
+            test.equal(myProj.addPluginFile('Plugins/testMac.m').path, 'testMac.m');
+            test.equal(myProj.addPluginFile('Plugins\\testWin.m').path, 'testWin.m');
+            test.done();
+        });
+    },
+    'should add files to the .pbxproj file using the / path seperator': function (test) {
+        var myProj = new pbx('test/parser/projects/full.pbxproj');
+
+        myProj.parse(function (err, hash) {
+            var file = myProj.addPluginFile('myPlugin\\newFile.m');
+
+            test.equal(myProj.pbxFileReferenceSection()[file.fileRef].path, '"myPlugin/newFile.m"');
+            test.done();
+        });
     }
 }
 
