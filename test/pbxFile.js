@@ -36,6 +36,13 @@ exports['lastKnownFileType'] = {
         test.done();
     },
 
+    'should detect that a .tbd path means sourcecode.text-based-dylib-definition': function (test) {
+        var sourceFile = new pbxFile('libsqlite3.tbd');
+
+        test.equal('sourcecode.text-based-dylib-definition', sourceFile.lastKnownFileType);
+        test.done();
+    },
+
     'should detect that a .framework path means wrapper.framework': function (test) {
         var sourceFile = new pbxFile('MessageUI.framework');
 
@@ -86,8 +93,20 @@ exports['group'] = {
         test.equal('Sources', dataModelFile.group);
         test.done();
     },
-    'should be Frameworks for frameworks': function (test) {
+    'should be Frameworks for dylibs': function (test) {
         var framework = new pbxFile('libsqlite3.dylib');
+
+        test.equal('Frameworks', framework.group);
+        test.done();
+    },
+    'should be Frameworks for tbds': function (test) {
+        var framework = new pbxFile('libsqlite3.tbd');
+
+        test.equal('Frameworks', framework.group);
+        test.done();
+    },
+    'should be Frameworks for frameworks': function (test) {
+        var framework = new pbxFile('MessageUI.framework');
 
         test.equal('Frameworks', framework.group);
         test.done();
@@ -120,6 +139,13 @@ exports['basename'] = {
 exports['sourceTree'] = {
     'should be SDKROOT for dylibs': function (test) {
         var sourceFile = new pbxFile('libsqlite3.dylib');
+
+        test.equal('SDKROOT', sourceFile.sourceTree);
+        test.done();
+    },
+
+    'should be SDKROOT for tbds': function (test) {
+        var sourceFile = new pbxFile('libsqlite3.tbd');
 
         test.equal('SDKROOT', sourceFile.sourceTree);
         test.done();
@@ -163,6 +189,13 @@ exports['path'] = {
         test.done();
     },
 
+    'should be "usr/lib" for tbds (relative to SDKROOT)': function (test) {
+        var sourceFile = new pbxFile('libsqlite3.tbd');
+
+        test.equal('usr/lib/libsqlite3.tbd', sourceFile.path);
+        test.done();
+    },
+
     'should be "System/Library/Frameworks" for frameworks': function (test) {
         var sourceFile = new pbxFile('MessageUI.framework');
 
@@ -186,7 +219,7 @@ exports['settings'] = {
       test.equal(undefined, sourceFile.settings);
       test.done();
     },
-  
+
     'should be undefined if weak is false or non-boolean': function (test) {
         var sourceFile1 = new pbxFile('social.framework',
             { weak: false });
@@ -203,6 +236,22 @@ exports['settings'] = {
             { weak: true });
 
         test.deepEqual({ATTRIBUTES:["Weak"]}, sourceFile.settings);
+        test.done();
+    },
+
+    'should be {ATTRIBUTES:["CodeSignOnCopy"]} if sign specified': function (test) {
+        var sourceFile = new pbxFile('signable.framework',
+            { embed: true, sign: true });
+
+        test.deepEqual({ATTRIBUTES:["CodeSignOnCopy"]}, sourceFile.settings);
+        test.done();
+    },
+
+    'should be {ATTRIBUTES:["Weak","CodeSignOnCopy"]} if both weak linking and sign specified': function (test) {
+        var sourceFile = new pbxFile('signableWeak.framework',
+            { embed: true, weak: true, sign: true });
+
+        test.deepEqual({ATTRIBUTES:["Weak", "CodeSignOnCopy"]}, sourceFile.settings);
         test.done();
     },
 
